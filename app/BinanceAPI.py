@@ -12,7 +12,9 @@ except ImportError:
  
 class BinanceAPI:
     
+    #BASE_URL = "https://testnet.binance.vision/api/v1"
     BASE_URL = "https://www.binance.com/api/v1"
+    #BASE_URL_V3 = "https://testnet.binance.vision/api/v3"
     BASE_URL_V3 = "https://api.binance.com/api/v3"
     PUBLIC_URL = "https://www.binance.com/exchange/public/product"
 

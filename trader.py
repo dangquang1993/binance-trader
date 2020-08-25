@@ -16,9 +16,9 @@ if __name__ == '__main__':
     parser.add_argument('--quantity', type=float, help='Buy/Sell Quantity', default=0)
     parser.add_argument('--amount', type=float, help='Buy/Sell BTC Amount (Ex: 0.002 BTC)', default=0)
     parser.add_argument('--symbol', type=str, help='Market Symbol (Ex: XVGBTC - XVGETH)', required=True)
-    parser.add_argument('--profit', type=float, help='Target Profit', default=1.3)
 
     parser.add_argument('--stop_loss', type=float, help='Target Stop-Loss %% (If the price drops by 6%%, sell market_price.)', default=0)
+    parser.add_argument('--stop_trade', type=float, help='Target Stop-Loss %% (If the price value of asset drop by 20%%, sell market_price and stop trade.)', default=0)
 
     parser.add_argument('--increasing', type=float, help='Buy Price +Increasing (0.00000001)', default=0.00000001)
     parser.add_argument('--decreasing', type=float, help='Sell Price -Decreasing (0.00000001)', default=0.00000001)
@@ -37,8 +37,6 @@ if __name__ == '__main__':
     #  - profit: Profit Hunter. Find defined profit, buy and sell. (Ex: 1.3% profit)
     #  - range: Between target two price, buy and sell. (Ex: <= 0.00100 buy - >= 0.00150 sell )
     parser.add_argument('--mode', type=str, help='Working Mode', default='profit')
-    parser.add_argument('--buyprice', type=float, help='Buy Price (Price is greater than equal <=)', default=0)
-    parser.add_argument('--sellprice', type=float, help='Sell Price (Price is less than equal >=)', default=0)
     parser.add_argument('--commision', type=str, help='Type of commission, TOKEN/BNB (default BNB)', default='BNB')
 
     option = parser.parse_args()

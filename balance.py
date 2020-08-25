@@ -8,13 +8,16 @@ sys.path.insert(0, './app')
 
 import time
 import config
+import numpy as np
 from datetime import timedelta, datetime
-from BinanceAPI import BinanceAPI
+
+from binance.client import Client
+from Orders import Orders
 
 class Binance:
 
     def __init__(self):
-        self.client = BinanceAPI(config.api_key, config.api_secret)
+        self.client = Client(config.api_key, config.api_secret)
 
     def balances(self):
         balances = self.client.get_account()
@@ -26,11 +29,31 @@ class Binance:
     def balance(self, asset='BTC'):
         balances = self.client.get_account()
         balances['balances'] = {item['asset']: item for item in balances['balances']}
-        print(balances['balances'][asset]['free'])
+        
+        if asset in balances['balances']:
+            print(balances['balances'][asset]['free'])
+        if asset[0:3] in balances['balances']:
+            print(balances['balances'][asset[0:3]]['free'])
+        if asset[0:4] in balances['balances']:
+            print(balances['balances'][asset[0:4]]['free'])
+        if asset[0:5] in balances['balances']:
+            print(balances['balances'][asset[0:5]]['free'])
 
-    def orders(self, symbol, limit):
-        orders = self.client.get_open_orders(symbol, limit)
+    def orders(self, symbol):
+        orders = self.client.get_open_orders(symbol=symbol)
         print(orders)
+
+    # def moving_average(self, symbol, period):
+    def moving_average(self, symbol, period):
+        try:        
+            klines = self.client.get_historical_klines(symbol, period, "30 min ago UTC")
+            klinearray = np.flipud(np.array(klines).astype(np.float))
+            print(klinearray[0:5,4])
+            shortMA = np.average(klinearray[0:2,4], weights=[1,2/3])
+            longMA = klinearray[0:20,4].mean()
+            print ("short: %.5f long: %.5f" %(shortMA,longMA)) 
+        except Exception as e:
+            print('Get MA Exception: %s' % e)
 
     def tickers(self):
         
@@ -62,7 +85,7 @@ class Binance:
         
         for coin in coins['data']:
             if coin['quoteAsset'] == asset:
-                orders = self.client.get_order_books(coin['symbol'], 5)             
+                orders = self.client.get_order_book(symbol=coin['symbol'], limit=5)             
                 if len(orders['bids'])>0 and len(orders['asks'])>0: 
                     lastBid = float(orders['bids'][0][0]) #last buy price (bid)
                     lastAsk = float(orders['asks'][0][0]) #last sell price (ask)
@@ -84,7 +107,7 @@ class Binance:
             dateF=dateS + timedelta(seconds=59)
 
         print('Retrieving values...\n')    
-        klines = self.client.get_klines(symbol, kline_size, int(dateS.timestamp()*1000), int(dateF.timestamp()*1000))
+        klines = self.client.get_klines(symbol=symbol, interval=kline_size, startTime=int(dateS.timestamp()*1000), endTime=int(dateF.timestamp()*1000))
 
         if len(klines)>0:
             for kline in klines:
@@ -99,15 +122,12 @@ try:
 
         print('\n')
         print('1 >> Print orders')
-        print('2 >> Scan profits')
         print('3 >> List balances')
         print('4 >> Check balance')
-        print('-----------------------------')
-        print('5 >> Market value (specific)')
-        print('6 >> Market value (range)')
-        print('-----------------------------')
         print('7 >> Server status')
-        print('-----------------------------')
+        print('8 >> Moving average')
+        print('9 >> Buy')
+        print('10 >> Sell')
         print('0 >> Exit')
         print('\nEnter option number:')
 
@@ -120,14 +140,7 @@ try:
             symbol = input()
             print('%s Orders' % (symbol))
             
-            m.orders(symbol, 10)
-
-        elif option=='2':      
-            print('Enter asset (i.e. BTC, ETH, BNB)')
-            asset = input()            
-            print('Profits scanning...')
-            
-            m.profits(asset)
+            m.orders(symbol)
             
         elif option=='3':      
             m.balances()
@@ -139,28 +152,34 @@ try:
             
             m.balance(symbol)
 
-        elif option=='5':
-            print('Enter pair: (i.e. BTCUSDT)')
-            symbol = input()
-            print('Enter date/time: (dd/mm/yyyy hh:mm:ss)')
-            dateS = input()
-
-            klines=m.market_value(symbol,"1m", dateS)
-
-        elif option=='6':
-            print('Enter pair: (i.e. BTCUSDT)')
-            symbol = input()
-            print('Enter start date/time: (dd/mm/yyyy hh:mm:ss)')
-            dateS = input()
-            print('Enter end date/time: (dd/mm/yyyy hh:mm:ss)')
-            dateF = input()
-            print('Enter interval as in exchange (i.e. 5m, 1d):')
-            interval = input()
-
-            klines=m.market_value(symbol, interval, dateS, dateF)
-
         elif option=='7':
             lag=m.server_status()
+
+        elif option=='8':
+            print('Enter pair: (i.e. XVGBTC)')
+            symbol = input()
+            print('Enter period: (i.e. 1m)')
+            period = input()
+            print('%s moving average for %s period' % (symbol, period))
+            m.moving_average(symbol,period)
+
+        elif option=='9':
+            print('Enter pair: (i.e. XVGBTC)')
+            symbol = input()
+            print('Enter price')
+            price = input()
+            print('Enter quantity')
+            quantity = input()
+            Orders.buy_limit(symbol, quantity, price)
+
+        elif option=='10':
+            print('Enter pair: (i.e. XVGBTC)')
+            symbol = input()
+            print('Enter price')
+            price = input()
+            print('Enter quantity')
+            quantity = input()
+            Orders.sell_limit(symbol, quantity, price)
 
         elif option=='0':
             break
