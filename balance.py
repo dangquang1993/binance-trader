@@ -43,6 +43,17 @@ class Binance:
         orders = self.client.get_open_orders(symbol=symbol)
         print(orders)
 
+    def get_all_info(self):
+        infos = self.client.get_exchange_info()
+        klines_list = []
+        for info in infos["symbols"][3:]:
+            if "USDT" in info["symbol"][2:]:
+                klines_list.append(self.client.get_ticker(symbol=info["symbol"]))
+        
+        best = sorted(klines_list, key=lambda k: float(k["quoteVolume"]), reverse=True)[0:10]
+        print(best[0]["symbol"])
+        return info
+
     # def moving_average(self, symbol, period):
     def moving_average(self, symbol, period):
         try:        
@@ -122,6 +133,7 @@ try:
 
         print('\n')
         print('1 >> Print orders')
+        print('2 >> List Coins')
         print('3 >> List balances')
         print('4 >> Check balance')
         print('7 >> Server status')
@@ -141,6 +153,11 @@ try:
             print('%s Orders' % (symbol))
             
             m.orders(symbol)
+            
+        if option=='2':
+            t = time.time()
+            all_symbol = m.get_all_info()
+            print(time.time() - t)
             
         elif option=='3':      
             m.balances()
