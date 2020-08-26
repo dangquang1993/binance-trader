@@ -44,15 +44,12 @@ class Binance:
         print(orders)
 
     def get_all_info(self):
-        infos = self.client.get_exchange_info()
-        klines_list = []
-        for info in infos["symbols"][3:]:
-            if "USDT" in info["symbol"][2:]:
-                klines_list.append(self.client.get_ticker(symbol=info["symbol"]))
-        
-        best = sorted(klines_list, key=lambda k: float(k["quoteVolume"]), reverse=True)[0:10]
-        print(best[0]["symbol"])
-        return info
+        infos = self.client.get_ticker()
+        usdtput_dict = [i for i in infos if "USDT" in i["symbol"][2:]]
+        best = sorted(usdtput_dict, key=lambda k: float(k["quoteVolume"]), reverse=True)
+        for i in range(20):
+            print(best[i]["symbol"])
+        return best
 
     # def moving_average(self, symbol, period):
     def moving_average(self, symbol, period):
