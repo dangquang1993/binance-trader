@@ -15,7 +15,7 @@ import numpy as np
 
 # Define Custom imports
 from Database import Database
-from Orders import Orders
+from BinanceWrapper import BinanceWrapper
 
 
 formater_str = '%(asctime)s,%(msecs)d %(levelname)s %(name)s: %(message)s'
@@ -141,7 +141,7 @@ class Trading():
         try:
 
             # Create order
-            order = Orders.buy_market(symbol, quantity)
+            order = BinanceWrapper.buy_market(symbol, quantity)
             orderId = order['orderId']
             #print('Buy order created id:%d, q:%.8f, p:%.8f' % (orderId, quantity, float(buyPrice)))
             print('%s : Buy order created id:%d, q:%.8f' % (symbol, orderId, quantity))
@@ -165,7 +165,7 @@ class Trading():
     def sell(self, symbol, quantity, orderId):
 
         if orderId > 0:
-            buy_order = Orders.get_order(symbol, orderId)
+            buy_order = BinanceWrapper.get_order(symbol, orderId)
 
             if buy_order['status'] == 'FILLED' and buy_order['side'] == 'BUY':
                 print('Buy order filled... Try sell...')
@@ -182,17 +182,17 @@ class Trading():
                     self.order_id = 0
                     return
          
-        available_quantity = float(Orders.balance(symbol))
+        available_quantity = float(BinanceWrapper.balance(symbol))
         trunc_quantity = math.floor(available_quantity *100)/100
         if available_quantity>quantity:
             print('Sell order s: %s q:%f' % (symbol,quantity))
-            sell_order = Orders.sell_market(symbol, quantity)
+            sell_order = BinanceWrapper.sell_market(symbol, quantity)
             sell_id = sell_order['orderId']
             print('Sell order create id: %d' % sell_id)
         else:
             if trunc_quantity > 0.001:
                 print('Sell order s: %s q:%f' % (symbol,trunc_quantity))
-                sell_order = Orders.sell_market(symbol, trunc_quantity)
+                sell_order = BinanceWrapper.sell_market(symbol, trunc_quantity)
                 sell_id = sell_order['orderId']
                 print('Sell order create id: %d' % sell_id)
             else:
@@ -222,7 +222,7 @@ class Trading():
         while trading_size < self.MAX_TRADE_SIZE:
 
             # Order info
-            order = Orders.get_order(symbol, orderId)
+            order = BinanceWrapper.get_order(symbol, orderId)
 
             side  = order['side']
             price = float(order['price'])
@@ -240,7 +240,7 @@ class Trading():
 
                 if self.cancel(symbol, orderId):
 
-                    buyo = Orders.buy_market(symbol, quantity)
+                    buyo = BinanceWrapper.buy_market(symbol, quantity)
 
                     #print('Buy market order')
                     print('Buy market order')
@@ -272,7 +272,7 @@ class Trading():
 
     def cancel(self, symbol, orderId):
         # If order is not filled, cancel it.
-        check_order = Orders.get_order(symbol, orderId)
+        check_order = BinanceWrapper.get_order(symbol, orderId)
 
         if not check_order:
             self.order_id = 0
@@ -280,7 +280,7 @@ class Trading():
             return True
 
         if check_order['status'] == 'NEW' or check_order['status'] != 'CANCELLED':
-            Orders.cancel_order(symbol, orderId)
+            BinanceWrapper.cancel_order(symbol, orderId)
             self.order_id = 0
             self.order_data = None
             return True
@@ -292,7 +292,7 @@ class Trading():
 
     # 0:hold, 1:buy, 2:sell
     def analyze(self, symbol):
-        klines = Orders.get_historical_klines(symbol, "1m", "30 min ago UTC")
+        klines = BinanceWrapper.get_historical_klines(symbol, "1m", "30 min ago UTC")
         klinearray = np.flipud(np.array(klines).astype(np.float))
         # shortMA = np.average(klinearray[0:5,4], weights=[1,2/3,2/4,2/5,2/6])
         shortMA = np.average(klinearray[0:3,4], weights=[1,2/3,1/2])
@@ -314,7 +314,7 @@ class Trading():
         self.short_long = new_short_long
 
         # Order book prices
-        lastBid, lastAsk = Orders.get_order_book(symbol)
+        lastBid, lastAsk = BinanceWrapper.get_order_book(symbol)
         if self.bestprice == 0:
             if retval == 1:
                 self.bestprice = lastAsk 
@@ -361,7 +361,7 @@ class Trading():
         symbol = self.option.symbol
 
         # Get symbol exchange info
-        symbol_info = Orders.get_info(symbol)
+        symbol_info = BinanceWrapper.get_info(symbol)
 
         if not symbol_info:
             print('Invalid symbol, please try again...')
@@ -381,9 +381,9 @@ class Trading():
         filters = self.filters()['filters']
 
         # Order book prices
-        lastBid, lastAsk = Orders.get_order_book(symbol)
+        lastBid, lastAsk = BinanceWrapper.get_order_book(symbol)
 
-        lastPrice = Orders.get_ticker(symbol)
+        lastPrice = BinanceWrapper.get_ticker(symbol)
 
         minQty = float(filters['LOT_SIZE']['minQty'])
         minPrice = float(filters['PRICE_FILTER']['minPrice'])

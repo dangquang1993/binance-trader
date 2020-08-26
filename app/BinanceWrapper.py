@@ -1,16 +1,80 @@
-# -*- coding: UTF-8 -*-
-# @yasinkuyu
 import config 
 
+import time
+import numpy as np
+
 from binance.client import Client
-# from BinanceAPI import BinanceAPI
 from Messages import Messages
 
 # Define Custom import vars
 client = Client(config.api_key, config.api_secret)
 
-class Orders():
+class BinanceWrapper():
  
+    @staticmethod
+    def balances():
+        balances = client.get_account()
+        posbalance = [b for b in balances['balances'] if  float(b['locked']) > 0 or float(b['free']) > 0]
+        return posbalance
+
+    @staticmethod
+    def balance(asset='BTC'):
+        balances = client.get_account()
+        balances['balances'] = {item['asset']: item for item in balances['balances']}
+        
+        if asset in balances['balances']:
+            return balances['balances'][asset]['free']
+        if asset[0:3] in balances['balances']:
+            return balances['balances'][asset[0:3]]['free']
+        if asset[0:4] in balances['balances']:
+            return balances['balances'][asset[0:4]]['free']
+        if asset[0:5] in balances['balances']:
+            return balances['balances'][asset[0:5]]['free']
+
+    @staticmethod
+    def orders(symbol):
+        orders = client.get_open_orders(symbol=symbol)
+        return orders
+        
+    @staticmethod
+    def get_all_info():
+        infos = client.get_ticker()
+        usdtput_dict = [i for i in infos if "USDT" in i["symbol"][2:]]
+        best = sorted(usdtput_dict, key=lambda k: float(k["quoteVolume"]), reverse=True)
+        for i in range(20):
+            print(best[i]["symbol"])
+        return best
+
+    @staticmethod
+    def moving_average(symbol, period):
+        try:        
+            klines = client.get_historical_klines(symbol, period, "30 min ago UTC")
+            klinearray = np.flipud(np.array(klines).astype(np.float))
+            print(klinearray[0:5,4])
+            shortMA = np.average(klinearray[0:2,4], weights=[1,2/3])
+            longMA = klinearray[0:20,4].mean()
+            print ("short: %.5f long: %.5f" %(shortMA,longMA)) 
+        except Exception as e:
+            print('Get MA Exception: %s' % e)
+
+    @staticmethod
+    def server_status():
+        systemT=int(time.time()*1000)           #timestamp when requested was launch
+        serverT= client.get_server_time()  #timestamp when server replied
+        lag=int(serverT['serverTime']-systemT)
+
+        print('System timestamp: %d' % systemT)
+        print('Server timestamp: %d' % serverT['serverTime'])
+        print('Lag: %d' % lag)
+
+        if lag>1000:
+            print('\nNot good. Excessive lag (lag > 1000ms)')
+        elif lag<0:
+            print('\nNot good. System time ahead server time (lag < 0ms)')
+        else:  
+            print('\nGood (0ms > lag > 1000ms)')              
+        return
+
     @staticmethod
     def buy_limit(symbol, quantity, buyPrice):
 
@@ -57,7 +121,6 @@ class Orders():
     def cancel_order(symbol, orderId):
         
         try:
-            
             order = client.cancel(symbol=symbol, orderId=orderId)
             if 'msg' in order:
                 Messages.get(order['msg'])
@@ -139,16 +202,3 @@ class Orders():
             
         except Exception as e:
             print('get_historical_klines Exception: %s' % e)
-        
-    @staticmethod
-    def balance(asset='BTC'):
-        balances = client.get_account()
-        balances['balances'] = {item['asset']: item for item in balances['balances']}
-        if asset in balances['balances']:
-            return balances['balances'][asset]['free']
-        if asset[0:3] in balances['balances']:
-            return balances['balances'][asset[0:3]]['free']
-        if asset[0:4] in balances['balances']:
-            return balances['balances'][asset[0:4]]['free']
-        if asset[0:5] in balances['balances']:
-            return balances['balances'][asset[0:5]]['free']
