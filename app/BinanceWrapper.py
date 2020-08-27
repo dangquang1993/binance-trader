@@ -4,13 +4,31 @@ import time
 import numpy as np
 
 from binance.client import Client
+from binance.websockets import BinanceSocketManager
 from Messages import Messages
 
 # Define Custom import vars
 client = Client(config.api_key, config.api_secret)
+websocket = BinanceSocketManager(client)
 
 class BinanceWrapper():
  
+    @staticmethod
+    def socketStart():
+        websocket.start()
+
+    @staticmethod
+    def socketStop(conn_key):
+        websocket.stop_socket(conn_key)
+
+    @staticmethod
+    def start_kline_socket(symbol, function, interval = Client.KLINE_INTERVAL_1MINUTE):
+        websocket.start_kline_socket(symbol, function, interval)
+
+    @staticmethod
+    def start_trade_socket(symbol, function):
+        websocket.start_trade_socket(symbol, function)
+
     @staticmethod
     def balances():
         balances = client.get_account()
@@ -41,18 +59,18 @@ class BinanceWrapper():
         infos = client.get_ticker()
         usdtput_dict = [i for i in infos if "USDT" in i["symbol"][2:]]
         best = sorted(usdtput_dict, key=lambda k: float(k["quoteVolume"]), reverse=True)
-        for i in range(20):
-            print(best[i]["symbol"])
+        # for i in range(20):
+        #     print(best[i]["symbol"])
         return best
 
     @staticmethod
     def moving_average(symbol, period):
         try:        
             klines = client.get_historical_klines(symbol, period, "30 min ago UTC")
-            klinearray = np.flipud(np.array(klines).astype(np.float))
-            print(klinearray[0:5,4])
-            shortMA = np.average(klinearray[0:2,4], weights=[1,2/3])
-            longMA = klinearray[0:20,4].mean()
+            klinearray = np.array(klines).astype(np.float)
+            print(klinearray[len(klinearray)-5:len(klinearray),4])
+            shortMA = np.average(klinearray[len(klinearray)-5:len(klinearray),4], weights=[1,2/3,2/4,2/5,2/6])
+            longMA = klinearray[len(klinearray)-20:len(klinearray),4].mean()
             print ("short: %.5f long: %.5f" %(shortMA,longMA)) 
         except Exception as e:
             print('Get MA Exception: %s' % e)
@@ -193,10 +211,10 @@ class BinanceWrapper():
             print('get_info Exception: %s' % e)
 
     @staticmethod
-    def get_historical_klines(symbol, period, time):
+    def get_historical_klines(symbol, period, limit):
         try:        
     
-            klines = client.get_historical_klines(symbol, period, time)
+            klines = client.get_historical_klines(symbol, period, limit)
  
             return klines
             
